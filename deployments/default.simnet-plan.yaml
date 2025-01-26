@@ -55,6 +55,11 @@ plan:
             path: contracts/drug-batch.clar
             clarity-version: 2
         - emulated-contract-publish:
+            contract-name: quality-control-nft
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/quality-control-nft.clar
+            clarity-version: 2
+        - emulated-contract-publish:
             contract-name: transport-condition
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/transport-condition.clar
