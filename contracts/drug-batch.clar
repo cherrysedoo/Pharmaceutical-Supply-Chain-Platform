@@ -1,70 +1,45 @@
-;; Drug Batch Contract
+;; Transport Conditions Contract
 
-(define-map drug-batches
-  { batch-id: (string-ascii 20) }
+(define-map transport-logs
+  { batch-id: (string-ascii 20), timestamp: uint }
   {
-    manufacturer: principal,
-    drug-name: (string-ascii 50),
-    quantity: uint,
-    manufacture-date: uint,
-    expiry-date: uint,
-    current-owner: principal,
-    status: (string-ascii 20)
+    temperature: int,
+    humidity: uint,
+    location: (string-ascii 50)
   }
 )
 
-(define-public (register-batch
+(define-public (log-transport-conditions
   (batch-id (string-ascii 20))
-  (drug-name (string-ascii 50))
-  (quantity uint)
-  (manufacture-date uint)
-  (expiry-date uint))
+  (temperature int)
+  (humidity uint)
+  (location (string-ascii 50)))
   (let
-    ((manufacturer tx-sender))
-    (map-set drug-batches
-      { batch-id: batch-id }
+    ((timestamp block-height))
+    (map-set transport-logs
+      { batch-id: batch-id, timestamp: timestamp }
       {
-        manufacturer: manufacturer,
-        drug-name: drug-name,
-        quantity: quantity,
-        manufacture-date: manufacture-date,
-        expiry-date: expiry-date,
-        current-owner: manufacturer,
-        status: "manufactured"
+        temperature: temperature,
+        humidity: humidity,
+        location: location
       }
     )
     (ok true)
   )
 )
 
-(define-public (transfer-batch (batch-id (string-ascii 20)) (new-owner principal))
-  (let
-    ((batch (unwrap! (map-get? drug-batches { batch-id: batch-id }) (err u404))))
-    (asserts! (is-eq tx-sender (get current-owner batch)) (err u403))
-    (map-set drug-batches
-      { batch-id: batch-id }
-      (merge batch {
-        current-owner: new-owner,
-        status: "in-transit"
-      })
-    )
-    (ok true)
-  )
+(define-read-only (get-transport-log (batch-id (string-ascii 20)) (timestamp uint))
+  (map-get? transport-logs { batch-id: batch-id, timestamp: timestamp })
 )
 
-(define-public (update-batch-status (batch-id (string-ascii 20)) (new-status (string-ascii 20)))
+(define-read-only (check-conditions (batch-id (string-ascii 20)) (min-temp int) (max-temp int) (max-humidity uint))
   (let
-    ((batch (unwrap! (map-get? drug-batches { batch-id: batch-id }) (err u404))))
-    (asserts! (is-eq tx-sender (get current-owner batch)) (err u403))
-    (map-set drug-batches
-      { batch-id: batch-id }
-      (merge batch { status: new-status })
-    )
-    (ok true)
+    ((latest-log (unwrap! (map-get? transport-logs { batch-id: batch-id, timestamp: block-height }) (err false))))
+    (ok (and
+      (>= (get temperature latest-log) min-temp)
+      (<= (get temperature latest-log) max-temp)
+      (<= (get humidity latest-log) max-humidity)
+    ))
   )
-)
-
-(define-read-only (get-batch-info (batch-id (string-ascii 20)))
-  (map-get? drug-batches { batch-id: batch-id })
 )
 
